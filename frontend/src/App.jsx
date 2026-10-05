@@ -3288,7 +3288,7 @@ ${inviteUrl}
             </div>
             <div className="logo-text-group">
               <h1 className="logo-title">
-                V2 <span className="logo-badge">PRO ENTERPRISE</span>
+                V2
               </h1>
               <span className="logo-tagline">Windows Protected Workplace</span>
             </div>
@@ -3310,10 +3310,6 @@ ${inviteUrl}
               </button>
             )}
             {currentTime && <span className="meet-clock">{currentTime}</span>}
-            <span className="status-pill status-ready">
-              <span className="status-dot-active" />
-              System Ready
-            </span>
           </div>
         </header>
       )}
@@ -3497,17 +3493,12 @@ ${inviteUrl}
                 <div className="hero-kicker-badge">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Windows Workstation Protected</span>
-                  <span className="kicker-sep">•</span>
-                  <span className="kicker-accent">50 Participants</span>
                 </div>
 
                 <div className="hero-text-block">
                   <h2 className="meet-headline">
                     Private, Ultra-HD Video Meetings for Windows
                   </h2>
-                  <p className="meet-tagline">
-                    Hardware-shielded end-to-end encrypted conferences with zero sign-ups, instant link access, interactive whiteboard, and screenshot defense.
-                  </p>
                 </div>
 
                 {/* 1. Mandatory Identity Setup Card */}
@@ -3519,7 +3510,6 @@ ${inviteUrl}
                     <div className="identity-info-meta">
                       <div className="identity-title-row">
                         <label className="identity-title">Your Display Name</label>
-                        <span className="name-required-badge">Mandatory</span>
                       </div>
                       <span className="identity-subtitle">
                         {userName.trim() ? "Verified • Ready to connect" : "Please enter your name to enter or start meetings"}
@@ -3655,11 +3645,7 @@ ${inviteUrl}
 
               {/* Right Column: Camera & Audio Studio */}
               <div className="meet-preview-card">
-                <div className="preview-studio-header">
-                  <div className="flex items-center gap-2">
-                    <div className="studio-live-dot" />
-                    <span className="studio-header-title">Readiness Studio</span>
-                  </div>
+                <div className="preview-studio-header" style={{ justifyContent: "flex-end" }}>
                   <span className="studio-pill-hd">Ultra-HD 1080p</span>
                 </div>
 
