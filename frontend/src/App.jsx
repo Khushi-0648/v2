@@ -1363,7 +1363,6 @@ export default function App() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [scheduleError, setScheduleError] = useState("");
   const [passcodeCopied, setPasscodeCopied] = useState(false);
-  const [windowsLinkCopied, setWindowsLinkCopied] = useState(false);
   // Clear any legacy scheduled meetings storage to ensure complete confidentiality
   useEffect(() => {
     try {
@@ -3226,32 +3225,9 @@ ${inviteUrl}
             It is not supported on Android, iPhone, or Mac devices.
           </p>
 
-          <p className="windows-instruction-text">
+          <p className="windows-instruction-text" style={{ marginBottom: 0 }}>
             Please open this link on a Windows PC.
           </p>
-
-          <button
-            className="btn-copy-windows-link"
-            onClick={() => {
-              if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(window.location.href);
-              }
-              setWindowsLinkCopied(true);
-              setTimeout(() => setWindowsLinkCopied(false), 2500);
-            }}
-          >
-            {windowsLinkCopied ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Link Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Copy Link for Windows PC</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
     );
