@@ -1363,6 +1363,7 @@ export default function App() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [scheduleError, setScheduleError] = useState("");
   const [passcodeCopied, setPasscodeCopied] = useState(false);
+  const [windowsLinkCopied, setWindowsLinkCopied] = useState(false);
   // Clear any legacy scheduled meetings storage to ensure complete confidentiality
   useEffect(() => {
     try {
@@ -3214,51 +3215,42 @@ ${inviteUrl}
     return (
       <div className="windows-restriction-wrapper">
         <div className="windows-restriction-card">
-          <div className="windows-restriction-badge">
-            <ShieldAlert className="w-4 h-4 text-emerald-700" />
-            <span>Enterprise Security • Windows Workstations Only</span>
-          </div>
-
           <div className="windows-icon-container">
             <Laptop className="w-16 h-16 text-emerald-600" />
           </div>
 
-          <h2 className="windows-restriction-title">Windows Device Required</h2>
+          <h2 className="windows-restriction-title">Windows Only</h2>
 
           <p className="windows-restriction-desc">
-            This confidential conference platform is cryptographically restricted to <b>Microsoft Windows</b> workstations only. Access from Android, iPhone, iPad, macOS, and Linux devices is prohibited by enterprise security policy.
+            This app is <b>only for Windows users</b>.<br />
+            It is not supported on Android, iPhone, or Mac devices.
           </p>
 
-          <div className="windows-security-info-box">
-            <div className="security-info-item">
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Instant hardware screenshot blackout & Windows PrintScreen blocking</span>
-            </div>
-            <div className="security-info-item">
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Windows Snipping Tool (Win + Shift + S) & Game Bar interception</span>
-            </div>
-            <div className="security-info-item">
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Hardware DRM content protection (WDA_MONITOR)</span>
-            </div>
-          </div>
-
           <p className="windows-instruction-text">
-            Please copy this link and open it in <b>Google Chrome or Microsoft Edge on a Windows 10 or Windows 11 PC</b>.
+            Please open this link on a Windows PC.
           </p>
 
           <button
             className="btn-copy-windows-link"
             onClick={() => {
-              if (navigator.clipboard) {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(window.location.href);
-                alert("Meeting link copied! Open this link on your Windows PC.");
               }
+              setWindowsLinkCopied(true);
+              setTimeout(() => setWindowsLinkCopied(false), 2500);
             }}
           >
-            <Copy className="w-4 h-4" />
-            <span>Copy Link for Windows PC</span>
+            {windowsLinkCopied ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>Link Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span>Copy Link for Windows PC</span>
+              </>
+            )}
           </button>
         </div>
       </div>
