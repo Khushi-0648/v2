@@ -4560,14 +4560,14 @@ ${inviteUrl}
                         <span>{isMeetingLocked ? "Unlock Meeting Room" : "Lock Meeting (Prevent New Entries)"}</span>
                       </button>
 
-                      {/* End Meeting for All (Destroy Tokens & Room) */}
+                      {/* End Meeting for All */}
                       <button
                         className="btn-drawer-end-all"
                         onClick={handleHostEndMeetingForAll}
-                        title="End meeting for all participants and permanently invalidate tokens"
+                        title="End meeting for all participants"
                       >
                         <ShieldAlert className="w-3.5 h-3.5 mr-1.5 text-rose-600" />
-                        <span>End Meeting for All (Destroy Tokens)</span>
+                        <span>End Meeting for All</span>
                       </button>
                     </div>
                   )}
