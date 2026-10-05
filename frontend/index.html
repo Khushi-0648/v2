@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- PWA & Mobile Web App Meta -->
+    <meta name="theme-color" content="#ca8a04" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="V2 Meet HD" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <title>V2 Meet HD — Zero-Knowledge E2EE Video Conferencing</title>
+
+    <!-- Instant 0ms Zero-Latency Hardware DRM Pre-Emption Script -->
+    <script>
+      (function() {
+        var isMeetingActive = false;
+        var isLockedDownByHost = false;
+        var isHostUser = false;
+        var lastMetaTime = 0;
+        var lastShiftTime = 0;
+        var lastAltTime = 0;
+        var lastCtrlTime = 0;
+        var lastPrintScreenTime = 0;
+
+        window.__setMeetingActive = function(active) {
+          isMeetingActive = Boolean(active);
+        };
+
+        window.__setIsHost = function(isHost) {
+          isHostUser = Boolean(isHost);
+          if (isHostUser) {
+            isLockedDownByHost = false;
+            disengageBlurBlackout();
+          }
+        };
+
+        window.__setInstantDrmLocked = function(locked) {
+          if (isHostUser) return;
+          isLockedDownByHost = Boolean(locked);
+          if (isLockedDownByHost) {
+            engageInstantBlackout("host-lockdown-enforced");
+          }
+        };
+
+        function wipeClipboard() {
+          if (!isCallActive() || isHostUser) return;
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText("").catch(function() {});
+            }
+          } catch(e) {}
+          if (window.electronAPI && typeof window.electronAPI.purgeClipboard === "function") {
+            window.electronAPI.purgeClipboard();
+          }
+        }
+
+        function isCallActive() {
+          if (isMeetingActive) return true;
+          try {
+            if (typeof document !== "undefined") {
+              if (document.querySelector(".video-stage") ||
+                  document.querySelector(".call-controls") ||
+                  document.querySelector(".call-layout") ||
+                  document.querySelector(".meeting-room") ||
+                  document.querySelector(".in-call")) {
+                return true;
+              }
+            }
+          } catch(e) {}
+          return false;
+        }
+
+        var lastBlackoutNotifyTime = 0;
+        function notifyHostOfBlackout(source) {
+          if (isHostUser || !isCallActive()) return;
+          var now = Date.now();
+          if (now - lastBlackoutNotifyTime < 500) return;
+          lastBlackoutNotifyTime = now;
+          try {
+            var pathParts = window.location.pathname.split("/").filter(Boolean);
+            var roomCode = window.__currentRoomCode || (pathParts.length > 0 ? pathParts[pathParts.length - 1] : "");
+            var peerId = window.__currentPeerId || undefined;
+            var participantName = window.__currentUserName || "Participant";
+            var apiBase = (window.location.port === "5173" || window.location.port === "3000") ? ("http://" + (window.location.hostname || "127.0.0.1") + ":8000") : "";
+            fetch(apiBase + "/api/security-event", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                eventType: "SCREENSHOT_ATTEMPT",
+                platform: "windows",
+                roomCode: roomCode,
+                participantName: participantName,
+                peerId: peerId,
+                details: { source: source || "screenshot-detected", timestamp: now }
+              })
+            }).then(function(r) {
+              console.log("[DRM] Security event dispatched to host:", r.status);
+            }).catch(function(err) {
+              console.warn("[DRM] Security event fetch failed:", err);
+            });
+          } catch(e) {
+            console.error("[DRM] notifyHostOfBlackout error:", e);
+          }
+        }
+
+        function engageInstantBlackout(source) {
+          if (isHostUser) return; // HOST NEVER FACES BLACKOUT
+          if (!isCallActive()) return; // ONLY DURING ACTIVE IN-CALL
+          document.documentElement.classList.add("instant-drm-blackout");
+          if (document.body) {
+            document.body.classList.add("instant-drm-blackout");
+          }
+          var curtain = document.getElementById("instant-drm-curtain");
+          if (curtain) {
+            curtain.style.display = "flex";
+            curtain.style.pointerEvents = "auto";
+          }
+          var vids = document.getElementsByTagName("video");
+          for (var i = 0; i < vids.length; i++) {
+            vids[i].style.setProperty("display", "none", "important");
+            vids[i].style.setProperty("visibility", "hidden", "important");
+            vids[i].style.setProperty("opacity", "0", "important");
+            vids[i].style.setProperty("filter", "brightness(0)", "important");
+          }
+          var stage = document.querySelector(".video-stage");
+          if (stage) {
+            stage.style.setProperty("display", "none", "important");
+            stage.style.setProperty("visibility", "hidden", "important");
+            stage.style.setProperty("opacity", "0", "important");
+          }
+          wipeClipboard();
+
+          // CRITICAL: At the exact moment this curtain arrives on the user's screen,
+          // notify host immediately via direct HTTP API and React custom event
+          notifyHostOfBlackout(source);
+          window.dispatchEvent(new CustomEvent("instant-drm-blackout-engaged", {
+            detail: { source: source || "hardware-pre-emption" }
+          }));
+        }
+
+        function disengageBlurBlackout() {
+          if (!isCallActive() || isHostUser) {
+            // Outside of call or Host: always completely clear
+            document.documentElement.classList.remove("instant-drm-blackout");
+            if (document.body) document.body.classList.remove("instant-drm-blackout");
+            var c = document.getElementById("instant-drm-curtain");
+            if (c) {
+              c.style.display = "none";
+              c.style.pointerEvents = "none";
+            }
+            return;
+          }
+          // STRICT RULE: If participant locked down by host policy, NEVER EVER remove the black screen!
+          if (isLockedDownByHost) return;
+          document.documentElement.classList.remove("instant-drm-blackout");
+          if (document.body) {
+            document.body.classList.remove("instant-drm-blackout");
+          }
+          var curtain = document.getElementById("instant-drm-curtain");
+          if (curtain) {
+            curtain.style.display = "none";
+            curtain.style.pointerEvents = "none";
+          }
+          var vids = document.getElementsByTagName("video");
+          for (var i = 0; i < vids.length; i++) {
+            vids[i].style.removeProperty("display");
+            vids[i].style.removeProperty("visibility");
+            vids[i].style.removeProperty("opacity");
+            vids[i].style.removeProperty("filter");
+          }
+          var stage = document.querySelector(".video-stage");
+          if (stage) {
+            stage.style.removeProperty("display");
+            stage.style.removeProperty("visibility");
+            stage.style.removeProperty("opacity");
+          }
+        }
+
+        var lastLockdownDispatchTime = 0;
+        function triggerSecurityLockdown(source) {
+          if (isHostUser) return; // HOST NEVER FACES LOCKDOWN
+          if (!isCallActive()) return; // ONLY ACTIVE DURING IN-CALL
+          isLockedDownByHost = true;
+          engageInstantBlackout(source);
+          wipeClipboard();
+        }
+
+        // 1. Capture keydown for hardware modifier tracking & direct screenshot keys
+        window.addEventListener("keydown", function(e) {
+          var key = (e.key || "").toLowerCase();
+          var code = (e.code || "").toLowerCase();
+          var now = Date.now();
+
+          if (key === "meta" || code === "metaleft" || code === "metaright" || e.keyCode === 91 || e.keyCode === 92) {
+            lastMetaTime = now;
+          }
+          if (key === "shift" || code === "shiftleft" || code === "shiftright" || e.keyCode === 16) {
+            lastShiftTime = now;
+          }
+          if (key === "alt" || code === "altleft" || code === "altright" || e.keyCode === 18) {
+            lastAltTime = now;
+          }
+          if (key === "control" || code === "controlleft" || code === "controlright" || e.keyCode === 17) {
+            lastCtrlTime = now;
+          }
+
+          function isInputElement() {
+            var active = document.activeElement;
+            if (!active) return false;
+            var tag = (active.tagName || "").toLowerCase();
+            return tag === "input" || tag === "textarea" || Boolean(active.isContentEditable);
+          }
+
+          var isPrintScreen = key === "printscreen" || code === "printscreen" || e.keyCode === 44 || key === "snapshot" || key === "print";
+          var isSnipping = (e.shiftKey && (key === "s" || code === "keys") && !isInputElement()) ||
+                           ((e.ctrlKey || e.metaKey) && e.shiftKey) ||
+                           ((e.ctrlKey || e.metaKey || (now - lastMetaTime < 2500)) && (e.shiftKey || (now - lastShiftTime < 2500)) && (key === "s" || code === "keys"));
+          var isRecording = (e.ctrlKey || e.altKey || e.metaKey) && (key === "r" || code === "keyr" || key === "g" || code === "keyg");
+          var isNvidia = e.altKey && (key === "f9" || key === "f10");
+          var isDev = key === "f12" || ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === "i" || key === "j" || key === "c"));
+
+          if (isPrintScreen || isSnipping || isRecording || isNvidia || isDev) {
+            // RULE 1: If app is open outside of a meeting, screenshots are 100% permitted!
+            if (!isCallActive()) {
+              return;
+            }
+            // RULE 2: If Host during meeting, screenshot is 100% permitted!
+            if (isHostUser || window.__isHostUser) {
+              return;
+            }
+            // Non-host participant during meeting: BLOCK & LOCKDOWN
+            wipeClipboard();
+            e.preventDefault();
+            e.stopPropagation();
+            triggerSecurityLockdown(isPrintScreen ? "printscreen" : (isSnipping ? "snipping-tool" : "recording"));
+          }
+        }, true);
+
+        // 2. Capture keyup for Windows PrintScreen which frequently only dispatches keyup
+        function handlePrtScnEvent(e) {
+          var key = (e.key || "").toLowerCase();
+          var code = (e.code || "").toLowerCase();
+          var now = Date.now();
+          if (key === "printscreen" || code === "printscreen" || e.keyCode === 44 || key === "snapshot" || key === "print") {
+            lastPrintScreenTime = now;
+            // RULE 1: If app is open outside of a meeting, screenshots are 100% permitted!
+            if (!isCallActive()) {
+              return;
+            }
+            // RULE 2: If Host during meeting, screenshot is 100% permitted!
+            if (isHostUser || window.__isHostUser) {
+              return;
+            }
+            // Non-host participant during meeting: BLOCK & LOCKDOWN
+            wipeClipboard();
+            try { e.preventDefault(); e.stopPropagation(); } catch(err) {}
+            triggerSecurityLockdown("printscreen");
+          }
+        }
+        window.addEventListener("keyup", handlePrtScnEvent, true);
+        document.addEventListener("keyup", handlePrtScnEvent, true);
+        window.addEventListener("keydown", handlePrtScnEvent, true);
+        document.addEventListener("keydown", handlePrtScnEvent, true);
+
+        // 3. WINDOW BLUR: ONLY trigger screenshot lockdown if a screenshot action was actively attempted during meeting!
+        window.addEventListener("blur", function() {
+          if (isHostUser || window.__isHostUser) return; // HOST IS EXEMPT
+          if (!isCallActive()) return; // OUTSIDE MEETING: BLUR IGNORED
+          var now = Date.now();
+          var wasScreenshotKeyActive = (now - lastPrintScreenTime < 3000) ||
+                                       ((now - lastMetaTime < 3000) && (now - lastShiftTime < 3000)) ||
+                                       ((now - lastCtrlTime < 3000) && (now - lastShiftTime < 3000));
+          if (wasScreenshotKeyActive) {
+            triggerSecurityLockdown("windows-snipping-tool");
+          }
+        }, true);
+
+        // 4. WINDOW FOCUS: Maintain clear view when not locked down
+        window.addEventListener("focus", function() {
+          if (!isCallActive() || isHostUser) {
+            disengageBlurBlackout();
+            return;
+          }
+          if (Date.now() - (window.__justUnlockedTime || 0) < 15000) {
+            disengageBlurBlackout();
+            return;
+          }
+          if (isLockedDownByHost) {
+            engageInstantBlackout("locked-down");
+            return;
+          }
+          disengageBlurBlackout();
+        }, true);
+
+        // 5. Visibility change
+        document.addEventListener("visibilitychange", function() {
+          if (!isCallActive() || isHostUser) {
+            disengageBlurBlackout();
+            return;
+          }
+          if (Date.now() - (window.__justUnlockedTime || 0) < 15000) {
+            disengageBlurBlackout();
+            return;
+          }
+          if (isLockedDownByHost) {
+            engageInstantBlackout("locked-down");
+          }
+        }, true);
+
+        // Function invoked ONLY when backend verifies host has authorized unlocking
+        window.__unlockInstantDrm = function() {
+          isLockedDownByHost = false;
+          window.__justUnlockedTime = Date.now();
+          wipeClipboard();
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(" ").catch(function() {});
+            }
+          } catch(e) {}
+          var statusText = document.getElementById("instant-drm-status-text");
+          if (statusText) {
+            statusText.textContent = "Screen is locked. Waiting for host permission to remove black screen...";
+            statusText.style.removeProperty("color");
+          }
+          var spinner = document.getElementById("instant-drm-spinner");
+          if (spinner) {
+            spinner.style.removeProperty("display");
+          }
+          document.documentElement.classList.remove("instant-drm-blackout");
+          if (document.body) {
+            document.body.classList.remove("instant-drm-blackout");
+          }
+          var curtain = document.getElementById("instant-drm-curtain");
+          if (curtain) {
+            curtain.style.setProperty("display", "none", "important");
+            curtain.style.setProperty("pointer-events", "none", "important");
+          }
+          var vids = document.getElementsByTagName("video");
+          for (var i = 0; i < vids.length; i++) {
+            vids[i].style.removeProperty("display");
+            vids[i].style.removeProperty("visibility");
+            vids[i].style.removeProperty("opacity");
+            vids[i].style.removeProperty("filter");
+          }
+          var stage = document.querySelector(".video-stage");
+          if (stage) {
+            stage.style.removeProperty("display");
+            stage.style.removeProperty("visibility");
+            stage.style.removeProperty("opacity");
+          }
+          window.dispatchEvent(new CustomEvent("instant-drm-blackout-resumed"));
+        };
+
+        // PARTICIPANT WATCHDOG: Poll room security status every 1000ms while locked down to ensure instant black screen removal
+        setInterval(function() {
+          if (!isLockedDownByHost || isHostUser || !isCallActive()) return;
+          try {
+            var pathParts = window.location.pathname.split("/").filter(Boolean);
+            var roomCode = window.__currentRoomCode || (pathParts.length > 0 ? pathParts[pathParts.length - 1] : "");
+            if (!roomCode) return;
+            var apiBase = (window.location.port === "5173" || window.location.port === "3000") ? ("http://" + (window.location.hostname || "127.0.0.1") + ":8000") : "";
+            fetch(apiBase + "/api/room-security-status/" + encodeURIComponent(roomCode))
+              .then(function(r) { return r.json(); })
+              .then(function(data) {
+                if (data && !data.hasAlert && data.lockedCount === 0) {
+                  window.__unlockInstantDrm();
+                }
+              }).catch(function() {});
+          } catch(e) {}
+        }, 1000);
+
+        // Function invoked when host denies permission to remove the black screen
+        window.__setInstantDrmDenied = function(msg) {
+          var statusText = document.getElementById("instant-drm-status-text");
+          if (statusText) {
+            statusText.textContent = msg || "🔒 The host chose to keep your screen locked in black screen. Your meeting screen will stay black until you cut the call.";
+            statusText.style.color = "#fbbf24";
+            statusText.style.fontWeight = "bold";
+          }
+          var spinner = document.getElementById("instant-drm-spinner");
+          if (spinner) {
+            spinner.style.display = "none";
+          }
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Instant 0ms Zero-Latency Hardware DRM Blackout Curtain -->
+    <div id="instant-drm-curtain" aria-hidden="true" style="display: none; pointer-events: none;">
+      <div class="drm-curtain-card">
+        <div class="drm-curtain-icon">🔒</div>
+        <h2 class="drm-curtain-title">CONTENT PROTECTION LOCKDOWN ACTIVE</h2>
+        <div class="drm-curtain-alert-badge">Screen Capture Attempt Detected</div>
+        <p class="drm-curtain-text">
+          Visual meeting data was blacked out by confidential security policy.
+          Screenshots, window capturing, and screen recordings on Windows are strictly prohibited.
+        </p>
+        <div class="drm-curtain-notice">
+          🔒 <b>HOST AUTHORITY REQUIRED:</b> This black screen lock can ONLY be removed with the permission of the meeting host.
+        </div>
+        <div class="drm-curtain-status">
+          <div class="drm-spinner" id="instant-drm-spinner"></div>
+          <span id="instant-drm-status-text">Screen is locked. Waiting for host permission to remove black screen...</span>
+        </div>
+        <div style="margin-top: 20px;">
+          <button id="instant-drm-cut-call-btn" type="button" onclick="window.dispatchEvent(new CustomEvent('instant-drm-user-cut-call')); window.location.reload();" style="background: #dc2626; color: #ffffff; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); transition: background 0.2s ease;">
+            📞 Cut Call & Leave
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(reg) { console.log('V2 PWA ServiceWorker registered:', reg.scope); })
+            .catch(function(err) { console.warn('V2 PWA ServiceWorker registration failed:', err); });
+        });
+      }
+    </script>
+  </body>
+</html>

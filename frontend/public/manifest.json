@@ -1,0 +1,48 @@
+{
+  "name": "V2 Meet HD — E2EE Video Conferencing",
+  "short_name": "V2 Meet",
+  "description": "High-Definition Zero-Knowledge Multi-Party Encrypted Video Meetings",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1329",
+  "theme_color": "#06b6d4",
+  "categories": ["business", "communication", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Instant Meeting",
+      "short_name": "New Meeting",
+      "description": "Create a new instant HD video meeting",
+      "url": "/?action=instant",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Join Meeting",
+      "short_name": "Join",
+      "description": "Join an ongoing meeting with code",
+      "url": "/?action=join",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
