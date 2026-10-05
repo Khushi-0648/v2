@@ -4490,7 +4490,7 @@ ${inviteUrl}
               <aside className="side-drawer">
                 <div className="drawer-header">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-emerald-400" />
+                    <Users className="w-4 h-4 text-emerald-600" />
                     <h4>Participants ({remotePeers.length + 1})</h4>
                   </div>
                   <button className="btn-close" onClick={() => setParticipantsOpen(false)}>
@@ -4503,8 +4503,8 @@ ${inviteUrl}
                   {isHost && (
                     <div className="drawer-host-section">
                       <div className="drawer-host-header">
-                        <span className="flex items-center gap-1.5 font-semibold text-xs text-amber-300">
-                          <Crown className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="flex items-center gap-1.5 font-bold text-xs text-amber-900">
+                          <Crown className="w-3.5 h-3.5 text-amber-600" />
                           Host Management
                         </span>
                         <span className="badge-host-pill">Host Mode</span>
@@ -4556,7 +4556,7 @@ ${inviteUrl}
                         }}
                         title={isMeetingLocked ? "Unlock Meeting Room (Allow new entries)" : "Lock Meeting Room (Block all new entries)"}
                       >
-                        {isMeetingLocked ? <Lock className="w-3.5 h-3.5 mr-1.5 text-rose-400" /> : <Shield className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />}
+                        {isMeetingLocked ? <Lock className="w-3.5 h-3.5 mr-1.5 text-rose-600" /> : <Shield className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />}
                         <span>{isMeetingLocked ? "Unlock Meeting Room" : "Lock Meeting (Prevent New Entries)"}</span>
                       </button>
 
@@ -4566,7 +4566,7 @@ ${inviteUrl}
                         onClick={handleHostEndMeetingForAll}
                         title="End meeting for all participants and permanently invalidate tokens"
                       >
-                        <ShieldAlert className="w-3.5 h-3.5 mr-1.5 text-amber-300" />
+                        <ShieldAlert className="w-3.5 h-3.5 mr-1.5 text-rose-600" />
                         <span>End Meeting for All (Destroy Tokens)</span>
                       </button>
                     </div>
@@ -4575,10 +4575,10 @@ ${inviteUrl}
                   {/* Guest Mode Banner when host is absent */}
                   {!isHost && !remotePeers.some((p) => p.isHost) && (
                     <div className="drawer-guest-banner">
-                      <Shield className="w-4 h-4 text-slate-400 shrink-0" />
+                      <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
                       <div>
-                        <span className="font-semibold text-xs text-slate-300 block">Peer Mode</span>
-                        <span className="text-xs text-slate-400 block">Host has left • Peer mode</span>
+                        <span className="font-semibold text-xs text-emerald-950 block">Peer Mode</span>
+                        <span className="text-xs text-emerald-700 block">Host has left • Peer mode</span>
                       </div>
                     </div>
                   )}
@@ -4702,9 +4702,9 @@ ${inviteUrl}
                               onClick={() => handleToggleCoHost(p.peerId, !p.isCoHost)}
                               className={`btn-host-ctrl ${p.isCoHost ? "btn-cohost-remove" : "btn-cohost-assign"}`}
                               title={p.isCoHost ? `Dismiss Co-Host for ${p.name}` : `Make ${p.name} Co-Host`}
-                              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "6px", border: "1px solid rgba(234, 179, 8, 0.4)", background: p.isCoHost ? "rgba(234, 179, 8, 0.2)" : "rgba(255,255,255,0.05)" }}
+                              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "6px", border: "1.5px solid #fde047", background: p.isCoHost ? "#fef08a" : "#ffffff" }}
                             >
-                              <Shield className="w-3.5 h-3.5 text-yellow-500" />
+                              <Shield className="w-3.5 h-3.5 text-yellow-600" />
                             </button>
                           )}
 
@@ -4725,17 +4725,17 @@ ${inviteUrl}
                                   <button
                                     onClick={() => handleHostDenyUnlock(p.peerId, p.name)}
                                     className="btn-host-ctrl"
-                                    style={{ background: "#334155", color: "#fcd34d", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px solid rgba(245, 158, 11, 0.4)" }}
+                                    style={{ background: "#f8fafc", color: "#b45309", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1.5px solid #fde047" }}
                                     title={`Keep black screen on ${p.name}'s screen`}
                                   >
-                                    <Lock className="w-3.5 h-3.5 text-amber-300" />
+                                    <Lock className="w-3.5 h-3.5 text-amber-600" />
                                     <span>Stay Black</span>
                                   </button>
                                 </div>
                               ) : (
                                 <span
                                   className="btn-host-ctrl"
-                                  style={{ background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.35)", color: "#10b981", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "6px" }}
+                                  style={{ background: "#ecfdf5", border: "1.5px solid #a7f3d0", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "6px" }}
                                   title={`Content Protection active for ${p.name} (Confidentiality policy enforced)`}
                                 >
                                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -4799,7 +4799,7 @@ ${inviteUrl}
               <aside className="side-drawer">
                 <div className="drawer-header">
                   <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-emerald-400" />
+                    <Lock className="w-4 h-4 text-emerald-600" />
                     <h4>E2EE In-Call Messages</h4>
                   </div>
                   <div className="flex items-center gap-2">
