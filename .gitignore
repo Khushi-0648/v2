@@ -10,6 +10,10 @@ venv/
 .venv/
 env/
 
+# Build artifacts
+build/
+dist/
+
 # Executables & large binaries
 cloudflared.exe
 *.zip

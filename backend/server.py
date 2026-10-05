@@ -295,8 +295,15 @@ class ScheduleMeetingRequest(BaseModel):
     hostToken: Optional[str] = Field(default=None)
     expiresInHours: Optional[int] = Field(default=24, ge=1, le=72)
 
-# Locate frontend/dist directory
-FRONTEND_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
+# Locate frontend/dist directory (support standalone PyInstaller executable and source directory)
+import sys
+if getattr(sys, "frozen", False):
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    FRONTEND_DIST = os.path.abspath(os.path.join(base_dir, "frontend", "dist"))
+    if not os.path.exists(FRONTEND_DIST):
+        FRONTEND_DIST = os.path.abspath(os.path.join(base_dir, "dist"))
+else:
+    FRONTEND_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
 
 @app.get("/health")
 async def health_check():
